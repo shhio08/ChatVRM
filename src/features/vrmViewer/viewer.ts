@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { Model } from "./model";
 import { loadVRMAnimation } from "@/lib/VRMAnimation/loadVRMAnimation";
 import { buildUrl } from "@/utils/buildUrl";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 /**
  * three.jsを使った3Dビューワー
@@ -17,7 +16,6 @@ export class Viewer {
   private _clock: THREE.Clock;
   private _scene: THREE.Scene;
   private _camera?: THREE.PerspectiveCamera;
-  private _cameraControls?: OrbitControls;
 
   constructor() {
     this.isReady = false;
@@ -44,8 +42,8 @@ export class Viewer {
       this.unloadVRM();
     }
 
-    // gltf and vrm
-    this.model = new Model(this._camera || new THREE.Object3D());
+    // this.model = new Model(this._camera || new THREE.Object3D());
+    this.model = new Model();
     this.model.loadVRM(url).then(async () => {
       if (!this.model?.vrm) return;
 
@@ -56,13 +54,11 @@ export class Viewer {
 
       this._scene.add(this.model.vrm.scene);
 
+      // モデルの向きを調整
+      this.model.vrm.scene.rotation.y = Math.PI; // 180度回転して正面を向く
+
       const vrma = await loadVRMAnimation(buildUrl("/idle_loop.vrma"));
       if (vrma) this.model.loadAnimation(vrma);
-
-      // HACK: アニメーションの原点がずれているので再生後にカメラ位置を調整する
-      requestAnimationFrame(() => {
-        this.resetCamera();
-      });
     });
   }
 
@@ -80,6 +76,7 @@ export class Viewer {
     const parentElement = canvas.parentElement;
     const width = parentElement?.clientWidth || canvas.width;
     const height = parentElement?.clientHeight || canvas.height;
+
     // renderer
     this._renderer = new THREE.WebGLRenderer({
       canvas: canvas,
@@ -91,17 +88,9 @@ export class Viewer {
     this._renderer.setPixelRatio(window.devicePixelRatio);
 
     // camera
-    this._camera = new THREE.PerspectiveCamera(20.0, width / height, 0.1, 20.0);
-    this._camera.position.set(0, 1.3, 1.5);
-    this._cameraControls?.target.set(0, 1.3, 0);
-    this._cameraControls?.update();
-    // camera controls
-    this._cameraControls = new OrbitControls(
-      this._camera,
-      this._renderer.domElement
-    );
-    this._cameraControls.screenSpacePanning = true;
-    this._cameraControls.update();
+    this._camera = new THREE.PerspectiveCamera(30.0, width / height, 0.1, 20.0);
+    this._camera.position.set(2, 12.0, 18.0);
+    this._camera.lookAt(new THREE.Vector3(-2, 10, 0));
 
     window.addEventListener("resize", () => {
       this.resize();
@@ -131,28 +120,9 @@ export class Viewer {
     this._camera.updateProjectionMatrix();
   }
 
-  /**
-   * VRMのheadノードを参照してカメラ位置を調整する
-   */
-  public resetCamera() {
-    const headNode = this.model?.vrm?.humanoid.getNormalizedBoneNode("head");
-
-    if (headNode) {
-      const headWPos = headNode.getWorldPosition(new THREE.Vector3());
-      this._camera?.position.set(
-        this._camera.position.x,
-        headWPos.y,
-        this._camera.position.z
-      );
-      this._cameraControls?.target.set(headWPos.x, headWPos.y, headWPos.z);
-      this._cameraControls?.update();
-    }
-  }
-
   public update = () => {
     requestAnimationFrame(this.update);
     const delta = this._clock.getDelta();
-    // update vrm components
     if (this.model) {
       this.model.update(delta);
     }

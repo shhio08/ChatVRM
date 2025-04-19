@@ -2,10 +2,10 @@ import * as THREE from "three";
 import { VRM, VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { VRMAnimation } from "../../lib/VRMAnimation/VRMAnimation";
-import { VRMLookAtSmootherLoaderPlugin } from "@/lib/VRMLookAtSmootherLoaderPlugin/VRMLookAtSmootherLoaderPlugin";
-import { LipSync } from "../lipSync/lipSync";
-import { EmoteController } from "../emoteController/emoteController";
-import { Screenplay } from "../messages/messages";
+// import { VRMLookAtSmootherLoaderPlugin } from "@/lib/VRMLookAtSmootherLoaderPlugin/VRMLookAtSmootherLoaderPlugin";
+// import { LipSync } from "../lipSync/lipSync";
+// import { EmoteController } from "../emoteController/emoteController";
+// import { Screenplay } from "../messages/messages";
 
 /**
  * 3Dキャラクターを管理するクラス
@@ -13,24 +13,13 @@ import { Screenplay } from "../messages/messages";
 export class Model {
   public vrm?: VRM | null;
   public mixer?: THREE.AnimationMixer;
-  public emoteController?: EmoteController;
+  // public emoteController?: EmoteController;
 
-  private _lookAtTargetParent: THREE.Object3D;
-  private _lipSync?: LipSync;
-
-  constructor(lookAtTargetParent: THREE.Object3D) {
-    this._lookAtTargetParent = lookAtTargetParent;
-    this._lipSync = new LipSync(new AudioContext());
-  }
+  constructor() {}
 
   public async loadVRM(url: string): Promise<void> {
     const loader = new GLTFLoader();
-    loader.register(
-      (parser) =>
-        new VRMLoaderPlugin(parser, {
-          lookAtPlugin: new VRMLookAtSmootherLoaderPlugin(parser),
-        })
-    );
+    loader.register((parser) => new VRMLoaderPlugin(parser));
 
     const gltf = await loader.loadAsync(url);
 
@@ -40,7 +29,7 @@ export class Model {
     VRMUtils.rotateVRM0(vrm);
     this.mixer = new THREE.AnimationMixer(vrm.scene);
 
-    this.emoteController = new EmoteController(vrm, this._lookAtTargetParent);
+    // this.emoteController = new EmoteController(vrm, this._lookAtTargetParent);
   }
 
   public unLoadVrm() {
@@ -69,22 +58,22 @@ export class Model {
   /**
    * 音声を再生し、リップシンクを行う
    */
-  public async speak(buffer: ArrayBuffer, screenplay: Screenplay) {
-    this.emoteController?.playEmotion(screenplay.expression);
-    await new Promise((resolve) => {
-      this._lipSync?.playFromArrayBuffer(buffer, () => {
-        resolve(true);
-      });
-    });
-  }
+  // public async speak(buffer: ArrayBuffer, screenplay: Screenplay) {
+  //   this.emoteController?.playEmotion(screenplay.expression);
+  //   await new Promise((resolve) => {
+  //     this._lipSync?.playFromArrayBuffer(buffer, () => {
+  //       resolve(true);
+  //     });
+  //   });
+  // }
 
   public update(delta: number): void {
-    if (this._lipSync) {
-      const { volume } = this._lipSync.update();
-      this.emoteController?.lipSync("aa", volume);
-    }
+    // if (this._lipSync) {
+    //   const { volume } = this._lipSync.update();
+    //   this.emoteController?.lipSync("aa", volume);
+    // }
 
-    this.emoteController?.update(delta);
+    // this.emoteController?.update(delta);
     this.mixer?.update(delta);
     this.vrm?.update(delta);
   }
